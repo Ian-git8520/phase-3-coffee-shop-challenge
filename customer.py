@@ -1,66 +1,56 @@
-# customer.py
-from typing import List, Optional
+from order import Order
 
 class Customer:
-    _all = []
 
-    def __init__(self, name: str):
-        self.name = name  # triggers validation
-        Customer._all.append(self)
+    all = []  # to keep track of all customers
+
+    def __init__(self, name):
+        self.name = name
+        Customer.all.append(self)
 
     @property
-    def name(self) -> str:
+    def name(self):
         return self._name
-
+    
     @name.setter
     def name(self, value):
-        if not isinstance(value, str):
-            raise TypeError("Customer name must be a string")
-        value = value.strip()
-        if not (1 <= len(value) <= 15):
-            raise ValueError("Customer name length must be between 1 and 15 characters")
+        # name must be a string between 1 and 15 characters
+        if type(value) is not str:
+            raise Exception("Name must be a string")
+        if len(value) < 1 or len(value) > 15:
+            raise Exception("Name must be between 1 and 15 characters")
         self._name = value
 
+    # return all orders for this customer
     def orders(self):
-        from order import Order
-        return [o for o in Order.all() if o.customer is self]
+        return [order for order in Order.all if order.customer is self]
 
+    # return all coffees this customer has ordered
     def coffees(self):
-        # unique list of coffees this customer has ordered
-        seen = []
-        for o in self.orders():
-            if o.coffee not in seen:
-                seen.append(o.coffee)
-        return seen
+        coffees = []
+        for order in self.orders():
+            if order.coffee not in coffees:
+                coffees.append(order.coffee)
+        return coffees
 
-    def create_order(self, coffee, price: float):
-        from order import Order
-        # Validate coffee is Coffee instance inside Order constructor
+    # create a new order
+    def create_order(self, coffee, price):
         return Order(self, coffee, price)
 
+    # find who spent the most money on a specific coffee
     @classmethod
     def most_aficionado(cls, coffee):
-        """
-        Customer who spent the most total on the provided coffee.
-        Returns Customer instance or None if no orders exist for that coffee.
-        """
-        from order import Order
-        # aggregate spending per customer for this coffee
-        totals = {}
-        for o in Order.all():
-            if o.coffee is coffee:
-                totals[o.customer] = totals.get(o.customer, 0.0) + o.price
+        highest_spender = None
+        highest_amount = 0
 
-        if not totals:
-            return None
+        for customer in cls.all:
+            total = 0
+            for order in customer.orders():
+                if order.coffee == coffee:
+                    total += order.price
 
-        # find customer with max spending; if tie, first encountered
-        best_customer = max(totals.items(), key=lambda kv: kv[1])[0]
-        return best_customer
+            if total > highest_amount:
+                highest_amount = total
+                highest_spender = customer
 
-    @classmethod
-    def all(cls) -> List['Customer']:
-        return list(cls._all)
-
-    def __repr__(self):
-        return f"<Customer {self.name}>"
+        return highest_spender
